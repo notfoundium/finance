@@ -14,10 +14,4 @@ RUN pip install -U pip && \
 COPY . /src
 ENV PATH "$PATH:/src/scripts"
 
-RUN useradd -m -d /src -s /bin/bash app \
-    && chown -R app:app /src/* && chmod +x /src/scripts/*
-
 WORKDIR /src
-USER app
-
-CMD ["./scripts/start.sh"]

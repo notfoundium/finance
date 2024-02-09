@@ -24,3 +24,34 @@ services:
     volumes:
       - /etc/finance.env:/src/.env
       - ./:/src
+    command:
+      ['./scripts/start.sh']
+
+  rabbitmq:
+    image: rabbitmq:latest
+    env_file:
+      - /etc/finance.env
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    volumes:
+      - /data/finance_rmq_data:/var/lib/rabbitmq
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - /data/finance_redis_data:/data
+
+  finance_worker:
+    image: finance
+    container_name: finance_worker
+    depends_on:
+      - rabbitmq
+      - redis
+    env_file:
+      - /etc/finance.env
+    restart: always
+    command:
+      [ './scripts/worker.sh' ]

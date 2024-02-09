@@ -8,3 +8,6 @@ psycopg2-binary
 asyncpg
 alembic
 black
+locust
+celery
+redis
