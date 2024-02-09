@@ -1,0 +1,26 @@
+version: "3.7"
+
+services:
+  finance_db:
+    container_name: finance_db
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    env_file:
+      - /etc/finance_db.env
+    volumes:
+      - /data/finance_data:/var/lib/postgresql/data
+
+  finance:
+    image: finance
+    container_name: finance
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - finance_db
+    ports:
+      - "8000:8000"
+    volumes:
+      - /etc/finance.env:/src/.env
+      - ./:/src
