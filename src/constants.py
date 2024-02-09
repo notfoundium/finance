@@ -8,6 +8,16 @@ class Symbol(StrEnum):
     ETHUSDT = "ETHUSDT"
 
 
+class Coin(StrEnum):
+    BITCOIN = "bitcoin"
+    ETHEREUM = "ethereum"
+
+
+class Currency(StrEnum):
+    USD = "usd"
+    RUB = "rub"
+
+
 class ExchangerName(StrEnum):
     BINANCE = "binance"
     COINGECKO = "coingecko"
