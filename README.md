@@ -16,6 +16,13 @@ POSTGRES_USER={username}
 POSTGRES_PASSWORD={password}
 POSTGRES_DB=postgres
 
+Конфиг finance_prometheus.yml поместить в директорию /etc
+
+Для корректной работы также необходимо вручную добавить директории
+
+/data/finance_grafana_data
+/data/finance_prometheus_data
+
 # Техническое задание к проекту
 
 **Реализовать сервис, через который можно получать курсы валютных пар с биржи**

@@ -11,3 +11,4 @@ black
 locust
 celery
 redis
+prometheus-fastapi-instrumentator
