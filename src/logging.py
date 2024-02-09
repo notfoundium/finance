@@ -1,7 +1,8 @@
 import logging
 
-logger = logging.getLogger('root')
-fh = logging.FileHandler('latest.log')
+logger = logging.getLogger("finance")
+logger.setLevel("INFO")
+fh = logging.FileHandler("latest.log")
 ch = logging.StreamHandler()
 
 formatter = logging.Formatter(
