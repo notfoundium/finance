@@ -1,25 +1,14 @@
-from src.constants import Symbol, Coin, Currency
-
-
-def get_binance_direction(symbol: Symbol):
-    if symbol == Symbol.BTCRUB:
-        return "BTC-RUB"
-    if symbol == Symbol.BTCUSDT:
-        return "BTC-USD"
-    if symbol == Symbol.ETHRUB:
-        return "ETH-RUB"
-    if symbol == Symbol.ETHUSDT:
-        return "ETH-USD"
+from src.constants import Direction, Coin, Currency
 
 
 def get_coingecko_direction(coin: Coin, currency: Currency):
     if coin == Coin.BITCOIN:
         if currency == Currency.RUB:
-            return "BTC-RUB"
+            return Direction.BTCRUB
         if currency == Currency.USD:
-            return "BTC-USD"
+            return Direction.BTCUSD
     if coin == Coin.ETHEREUM:
         if currency == Currency.RUB:
-            return "ETH-RUB"
+            return Direction.ETHRUB
         if currency == Currency.USD:
-            return "ETH-USD"
+            return Direction.ETHUSD

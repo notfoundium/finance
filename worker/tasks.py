@@ -1,3 +1,8 @@
+import time
+import asyncio
+import websockets
+import json
+
 import pydantic
 import requests
 from celery import Celery
@@ -7,8 +12,8 @@ from fastapi import status
 from src.database import get_session
 from src.models import Exchange, Course
 from src.schemas import Exchange as ExchangeSchema
-from src.constants import ExchangerName
-from src.utils import get_coingecko_direction, get_binance_direction
+from src.constants import ExchangerName, BinanceStream, Direction
+from src.utils import get_coingecko_direction
 from src.exceptions import ExchangeNoResponseError
 from src.settings import settings
 from src.logging import logger
@@ -19,32 +24,40 @@ redis_url = "redis://redis"
 
 queue = Celery("tasks", broker=broker_url, backend=redis_url)
 queue.conf.timezone = "Europe/Moscow"
-symbols = str(
-    ["BTCRUB", "BTCUSDT", "ETHRUB", "ETHUSDT"]
-).replace("\'", "\"").replace(" ", "")
 
 
-@queue.on_after_configure.connect
-def setup_periodic_tasks(sender, **kwargs):
-    sender.add_periodic_task(5.0, update_courses.s(), name="update_courses")
-
-
-def get_binance():
-    response = requests.get(f"https://api1.binance.com/api/v3/ticker/price?symbols={symbols}")
-    if response.status_code != status.HTTP_200_OK:
-        raise ExchangeNoResponseError
-    response = response.json()
-    exchange = Exchange(exchanger=ExchangerName.BINANCE)
-    with next(get_session()) as session:
-        for item in response:
-            course = Course(direction=get_binance_direction(item.get("symbol")), value=item.get("price"))
-            session.add(course)
-            exchange.courses.append(course)
-        session.add(exchange)
-        session.commit()
-        session.refresh(exchange)
-        logger.debug(pydantic.parse_obj_as(ExchangeSchema, exchange))
-    return exchange
+async def get_binance():
+    async with websockets.connect(
+            f"wss://stream.binance.com:9443/stream?streams={BinanceStream.BTCUSDT}/{BinanceStream.ETHUSDT}"
+    ) as ws:
+        try:
+            is_eth_set = False
+            is_btc_set = False
+            while True:
+                response = await asyncio.wait_for(ws.recv(), timeout=2)
+                response = json.loads(response)
+                logger.info(response)
+                if not is_btc_set and not is_eth_set:
+                    exchange = Exchange(exchanger=ExchangerName.BINANCE)
+                with next(get_session()) as session:
+                    if response.get("stream") == BinanceStream.ETHUSDT:
+                        direction = Direction.ETHUSD
+                        is_eth_set = True
+                    elif response.get("stream") == BinanceStream.BTCUSDT:
+                        direction = Direction.BTCUSD
+                        is_btc_set = True
+                    course = Course(direction=direction, value=response.get("data").get("w"))
+                    session.add(course)
+                    exchange.courses.append(course)
+                    if is_btc_set and is_eth_set:
+                        session.add(exchange)
+                        session.commit()
+                        is_eth_set = False
+                        is_btc_set = False
+                    logger.debug(pydantic.parse_obj_as(ExchangeSchema, exchange))
+                await asyncio.sleep(2)
+        except (websockets.exceptions.ConnectionClosed, TimeoutError):
+            raise ExchangeNoResponseError
 
 
 def get_coingecko():
@@ -70,16 +83,21 @@ def get_coingecko():
 def update_courses():
     latest: Exchange
     try:
-        latest = get_coingecko()
+        latest = asyncio.run(get_binance())
         logger.info("Latest exchange: " + latest.exchanger)
-        return latest.exchanger
-    except ExchangeNoResponseError:
-        logger.warning("Coingecko does not respond.")
-
-    try:
-        latest = get_binance()
-        logger.info("Latest exchange: " + latest.exchanger)
+        time.sleep(2)
+        update_courses.delay()
         return latest.exchanger
     except ExchangeNoResponseError:
         logger.warning("Binance does not respond.")
+    try:
+        latest = get_coingecko()
+        logger.info("Latest exchange: " + latest.exchanger)
+        time.sleep(2)
+        update_courses.delay()
+        return latest.exchanger
+    except ExchangeNoResponseError:
+        logger.warning("Coingecko does not respond.")
+    time.sleep(2)
+    update_courses.delay()
     logger.critical("All requests failed.")

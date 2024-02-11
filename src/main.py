@@ -11,6 +11,8 @@ from src.schemas import Exchange as ExchangeSchema
 from src.constants import ExchangerName
 from src.metrics import BINANCE_TOTAL, COINGECKO_TOTAL
 
+from worker.tasks import update_courses
+
 app = FastAPI()
 
 
@@ -61,3 +63,8 @@ def minute_task() -> None:
         BINANCE_TOTAL.labels("count").set(session.query(Exchange).filter(Exchange.exchanger == ExchangerName.BINANCE).count())
         COINGECKO_TOTAL.labels("count").set(
             session.query(Exchange).filter(Exchange.exchanger == ExchangerName.COINGECKO).count())
+
+
+@app.on_event("startup")
+def startup():
+    update_courses.delay()
