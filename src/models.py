@@ -19,7 +19,8 @@ class Course(Base):
 
     exchange_id = Column("exchange_id", ForeignKey("exchanges.id", ondelete="CASCADE"), nullable=False)
     exchange = relationship(
-        "Exchange", foreign_keys=[exchange_id], back_populates="courses"
+        "Exchange", foreign_keys=[exchange_id], back_populates="courses",
+        lazy="joined"
     )
 
 
@@ -33,5 +34,6 @@ class Exchange(Base):
         "Course",
         back_populates="exchange",
         foreign_keys=[Course.exchange_id],
-        cascade="all, delete"
+        cascade="all, delete",
+        lazy="joined"
     )

@@ -1,7 +1,7 @@
 import logging
 
 logger = logging.getLogger("finance")
-logger.setLevel("INFO")
+logger.setLevel("DEBUG")
 fh = logging.FileHandler("latest.log")
 ch = logging.StreamHandler()
 

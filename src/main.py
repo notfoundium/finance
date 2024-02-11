@@ -1,11 +1,12 @@
 from typing import Optional
 
 import prometheus_client
+from sqlalchemy import select, func
 from fastapi import FastAPI, Depends, status, HTTPException, Response
 from fastapi_utils.tasks import repeat_every
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from src.database import Session, get_session
+from src.database import get_session, AsyncSession, SessionLocal
 from src.models import Exchange
 from src.schemas import Exchange as ExchangeSchema
 from src.constants import ExchangerName
@@ -40,29 +41,41 @@ def metrics():
     "/courses",
     response_model=ExchangeSchema
 )
-def get_courses(
+async def get_courses(
         exchanger: Optional[str] = None,
-        session: Session = Depends(get_session)
+        session: AsyncSession = Depends(get_session)
 ):
-    if exchanger is not None:
+    if exchanger is None:
+        stmt = select(Exchange).order_by(Exchange.timestamp.desc())
+    else:
         if exchanger == ExchangerName.BINANCE:
-            return session.query(Exchange).filter(Exchange.exchanger == ExchangerName.BINANCE).order_by(
-                Exchange.timestamp.desc()).first()
+            stmt = select(Exchange).\
+                where(Exchange.exchanger == ExchangerName.BINANCE).\
+                order_by(Exchange.timestamp.desc())
         elif exchanger == ExchangerName.COINGECKO:
-            return session.query(Exchange).filter(Exchange.exchanger == ExchangerName.COINGECKO).order_by(
-                Exchange.timestamp.desc()).first()
+            stmt = select(Exchange). \
+                where(Exchange.exchanger == ExchangerName.COINGECKO). \
+                order_by(Exchange.timestamp.desc())
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid exchanger name")
-    return session.query(Exchange).order_by(Exchange.timestamp.desc()).first()
+    result = await session.execute(stmt)
+    return result.scalars().first()
 
 
 @app.on_event("startup")
 @repeat_every(seconds=60)
-def minute_task() -> None:
-    with next(get_session()) as session:
-        BINANCE_TOTAL.labels("count").set(session.query(Exchange).filter(Exchange.exchanger == ExchangerName.BINANCE).count())
-        COINGECKO_TOTAL.labels("count").set(
-            session.query(Exchange).filter(Exchange.exchanger == ExchangerName.COINGECKO).count())
+async def minute_task() -> None:
+    async with SessionLocal() as session:
+        result = await session.execute(
+            select(func.count(Exchange.id)).where(Exchange.exchanger == ExchangerName.BINANCE)
+        )
+        binance_total_val = result.scalar()
+        result = await session.execute(
+            select(func.count(Exchange.id)).where(Exchange.exchanger == ExchangerName.COINGECKO)
+        )
+        coingecko_total_val = result.scalar()
+        BINANCE_TOTAL.labels("count").set(binance_total_val)
+        COINGECKO_TOTAL.labels("count").set(coingecko_total_val)
 
 
 @app.on_event("startup")

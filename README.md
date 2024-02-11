@@ -6,6 +6,7 @@
 Содержимое конфига */etc/finance.env*:
 
 DATABASE_URL=postgresql+psycopg2://{username}:{password}@finance_db:5432/postgres
+DATABASE_URL_ASYNC=postgresql+asyncpg://{username}:{password}@finance_db:5432/postgres
 RABBITMQ_DEFAULT_USER={username}
 RABBITMQ_DEFAULT_PASS={password}
 RABBITMQ_DEFAULT_VHOST=financevhost
