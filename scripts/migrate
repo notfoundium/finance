@@ -1,3 +1,3 @@
 #!/bin/sh -e
 
-alembic upgrade head
+poetry run alembic upgrade head

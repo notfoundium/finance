@@ -12,4 +12,4 @@ HOST=${HOST:-0.0.0.0}
 PORT=${PORT:-8000}
 
 migrate
-exec uvicorn --reload --proxy-headers --host $HOST --port $PORT "$APP_MODULE"
+exec poetry run uvicorn --reload --proxy-headers --host $HOST --port $PORT "$APP_MODULE"

@@ -1,8 +1,8 @@
 import time
 import asyncio
-import websockets
 import json
 
+import websockets
 import pydantic
 import requests
 from celery import Celery

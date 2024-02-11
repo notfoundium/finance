@@ -23,9 +23,8 @@ services:
       - "8000:8000"
     volumes:
       - /etc/finance.env:/src/.env
-      - ./:/src
     command:
-      ['./scripts/start.sh']
+      ['start.sh']
 
   rabbitmq:
     image: rabbitmq:latest
@@ -54,7 +53,7 @@ services:
       - /etc/finance.env
     restart: always
     command:
-      [ './scripts/worker.sh' ]
+      [ 'worker.sh' ]
 
   prometheus:
     image: prom/prometheus
